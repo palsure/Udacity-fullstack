@@ -131,7 +131,7 @@ def create_app(test_config=None):
             if request.method != 'DELETE':
                 abort(405)
 
-            question = Question.query.filter_by(id=question_id).one_or_none()
+            question = Question.query.filter_by(id = question_id).one_or_none()
             
             if question is None:
                 abort(404)
@@ -307,16 +307,18 @@ def create_app(test_config=None):
             previous_questions = request_json.get("previous_questions")
 
             if (quiz_category is None):
-                abort(400)
+                abort(400) 
             elif (quiz_category['id'] == 0):
                 category_questions = Question.query.all()
+            elif (Category.query.filter_by(id = quiz_category['id']).one_or_none() is None):
+               abort(400)
             else:
                 category_questions = Question.query.filter(Question.category == quiz_category['id']).all()
             
-            questions = [question.format() for question in category_questions]
-
-            if (len(questions) == 0):
+            if (len(category_questions) == 0):
                 abort(404)
+
+            questions = [question.format() for question in category_questions]
 
             random.shuffle(questions)
             filtered_questions = []

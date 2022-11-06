@@ -34,7 +34,7 @@ class TriviaTestCase(unittest.TestCase):
             'category': 6
         }
 
-        # quiz data
+        # quiz data valid category
         self.quiz = {
             'previous_questions': [1, 2],
             'quiz_category': {
@@ -43,7 +43,7 @@ class TriviaTestCase(unittest.TestCase):
             }
         }
 
-        # quiz data
+        # quiz data all category
         self.quiz_all = {
             'previous_questions': [],
             'quiz_category': {
@@ -52,14 +52,17 @@ class TriviaTestCase(unittest.TestCase):
             }
         }
 
-        # quiz invalid data
-        self.quiz_invalid = {
+        # quiz data invalid category
+        self.quiz_invalid_category = {
             'previous_questions': [10, 20],
             'quiz_category': {
                 'type': 'Invalid', 
                 'id': '100'
             }
         }
+
+        # quiz data invalid request
+        self.quiz_invalid_request = {}
     
     def tearDown(self):
         """Executed after reach test"""
@@ -209,12 +212,19 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(response_data['success'], True)
         self.assertTrue(response_data['question'])
     
-    def test_retrieve_quizzes_invalid_category_404(self):
-        response = self.client().post('/quizzes', json = self.quiz_invalid)
+    def test_retrieve_quizzes_invalid_category_400(self):
+        response = self.client().post('/quizzes', json = self.quiz_invalid_category)
         response_data = json.loads(response.data)
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 400)
         self.assertEqual(response_data['success'], False)
-        self.assertEqual(response_data['message'], 'resource not found')
+        self.assertEqual(response_data['message'], 'bad request')
+    
+    def test_retrieve_quizzes_invalid_request_400(self):
+        response = self.client().post('/quizzes', json = self.quiz_invalid_request)
+        response_data = json.loads(response.data)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response_data['success'], False)
+        self.assertEqual(response_data['message'], 'bad request')
 
 # Make the tests conveniently executable
 if __name__ == "__main__":
