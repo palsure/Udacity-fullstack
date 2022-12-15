@@ -1,4 +1,4 @@
-import json
+import json, sys
 from flask import request, _request_ctx_stack
 from functools import wraps
 from jose import jwt
@@ -6,9 +6,9 @@ from urllib.request import urlopen
 from os import environ
 
 
-AUTH0_DOMAIN = environ.get('AUTH0_DOMAIN', 'sure-coffee.us.auth0.com')
+AUTH0_DOMAIN = environ.get('AUTH0_DOMAIN', 'sure-coffee-shop.us.auth0.com')
 ALGORITHMS = ['RS256']
-API_AUDIENCE = environ.get('API_AUDIENCE', 'https://sure-coffee-shop.com')
+API_AUDIENCE = environ.get('API_AUDIENCE', 'sure-coffee')
 
 # AuthError Exception
 '''
@@ -79,16 +79,14 @@ def check_permissions(permission, payload):
             {
                 "code": "permission_missing",
                 "description": "Permission is missing in payload"
-            }
-        )
+            }, 401)
 
     if permission not in payload['permissions']:
         raise AuthError(
             {
                 "code": "permission_invalid",
-                "description": "Permission is invalid"
-            }
-        )
+                "description": "Permission is invalid/not allowed"
+            }, 401)
 
 
 '''
@@ -107,7 +105,6 @@ def check_permissions(permission, payload):
 
 
 def verify_decode_jwt(token):
-    print(f'https://{AUTH0_DOMAIN}/.well-known/jwks.json')
     jsonurl = urlopen(f'https://{AUTH0_DOMAIN}/.well-known/jwks.json')
     jwks = json.loads(jsonurl.read())
     unverified_header = jwt.get_unverified_header(token)
@@ -185,7 +182,14 @@ def requires_auth(permission=''):
         @wraps(f)
         def wrapper(*args, **kwargs):
             token = get_token_auth_header()
-            payload = verify_decode_jwt(token)
+            try:
+                payload = verify_decode_jwt(token)
+            except:
+                print(sys.exc_info())
+                raise AuthError({
+                    'code': 'invalid_token',
+                    'description': 'Access denied due to invalid token'
+                },401)
             check_permissions(permission, payload)
             return f(payload, *args, **kwargs)
 

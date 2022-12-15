@@ -1,8 +1,9 @@
-import os
+import os, sys
 from flask import Flask, request, jsonify, abort
 from sqlalchemy import exc
 import json
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
 
 from .database.models import db_drop_and_create_all, setup_db, Drink
 from .auth.auth import AuthError, requires_auth
@@ -34,25 +35,30 @@ CORS(app)
 @app.route("/drinks")
 def get_drinks():
     try:
+        # Allows only GET request
         if request.method != 'GET':
             abort(405)
-        print("inside get drinks")
+        # Gets all drinks
         drinks = Drink.query.order_by(Drink.id).all()
-        print(drinks)
-
+        # Returns error 404 if no drinks available
         if len(drinks) == 0:
             abort(404)
-
+        # created dictionary of all drinks with short
         drinks_data = [drink.short() for drink in drinks]
-
+        # returns json response with 200 status
         return jsonify(
             {
                 "success": True,
                 "drinks": drinks_data
             }
-        )
-    except BaseException:
-        abort(422)
+        ), 200
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            abort(e.code)
+        else:
+            print(sys.exc_info())
+            # Returns error 422 unprocessable
+            abort(422)
 
 
 '''
@@ -68,26 +74,32 @@ def get_drinks():
 
 @app.route("/drinks-detail")
 @requires_auth('get:drinks-detail')
-def get_drinks_detail():
+def get_drinks_detail(jwt):
     try:
+        # Allows only GET request
         if request.method != 'GET':
             abort(405)
-
+        # Gets all drinks
         drinks = Drink.query.order_by(Drink.id).all()
-
+        # Returns error 404 if no drinks available
         if len(drinks) == 0:
             abort(404)
-
+        # created dictionary of all drinks with long
         drinks_data = [drink.long() for drink in drinks]
-
+        # returns json response with 200 status
         return jsonify(
             {
                 "success": True,
                 "drinks": drinks_data
             }
-        )
-    except BaseException:
-        abort(422)
+        ), 200
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            abort(e.code)
+        else:
+            print(sys.exc_info())
+            # Returns error 422 unprocessable
+            abort(422)
 
 
 '''
@@ -104,33 +116,39 @@ def get_drinks_detail():
 
 @app.route("/drinks", methods=['POST'])
 @requires_auth('post:drinks')
-def create_drink():
+def create_drink(jwt):
     try:
+        # Allows only POST request
         if request.method != 'POST':
             abort(405)
-
+        # gets drink details from request
         request_json = request.get_json()
-
         drink_title = request_json.get('title', None)
         drink_recipe = request_json.get('recipe', None)
-
+        # Returns error 400 if drink title or recipe is missing in request
         if ((drink_title is None) or (drink_recipe is None)):
             abort(400)
-
+        # create new drink bject
         drink = Drink(
             title=drink_title,
-            recipe=json.dump(drink_recipe)
+            recipe=json.dumps(drink_recipe)
         )
+        # save new drink bject
         drink.insert()
-
+        # returns json response with 200 status
         return jsonify(
             {
                 "success": True,
                 "drinks": [drink.long()]
             }
-        )
-    except BaseException:
-        abort(422)
+        ), 200
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            abort(e.code)
+        else:
+            print(sys.exc_info())
+            # Returns error 422 unprocessable
+            abort(422)
 
 
 '''
@@ -149,36 +167,44 @@ def create_drink():
 
 @app.route('/drinks/<int:drink_id>', methods=['PATCH'])
 @requires_auth('patch:drinks')
-def update_drink(payload, drink_id):
+def update_drink(jwt, drink_id):
+    print(drink_id)
     try:
+        # Allows only PATCH request
         if request.method != 'PATCH':
             abort(405)
-
+        # gets drink details from request
         request_json = request.get_json()
-
         drink_title = request_json.get('title', None)
         drink_recipe = request_json.get('recipe', None)
-
-        if ((drink_title is None) or (drink_recipe is None)):
+        # Returns error 400 if drink title or recipe is missing in request
+        if ((drink_title is None) and (drink_recipe is None)):
             abort(400)
-
+        # gets drink details from db for drink_id
         drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
-
+        # returns 404 error if no drink found for drink_id
         if (drink is None):
             abort(404)
-
-        drink.title = drink_title
-        drink.recipe = drink_recipe
+        # update details for drink
+        if drink_title:
+            drink.title = drink_title
+        if drink_recipe:    
+            drink.recipe = drink_recipe
         drink.update()
-
+        # returns json response with 200 status
         return jsonify(
             {
                 "success": True,
                 "drinks": [drink.long()]
             }
-        )
-    except BaseException:
-        abort(422)
+        ), 200
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            abort(e.code)
+        else:
+            print(sys.exc_info())
+            # Returns error 422 unprocessable
+            abort(422)
 
 
 '''
@@ -196,26 +222,32 @@ def update_drink(payload, drink_id):
 
 @app.route('/drinks/<int:drink_id>', methods=['DELETE'])
 @requires_auth('delete:drinks')
-def delete_drink(drink_id):
+def delete_drink(jwt, drink_id):
     try:
+        # Allows only DELETE request
         if request.method != 'DELETE':
             abort(405)
-
+        # gets frink details from db for drink_id
         drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
-
+        # returns 404 error if no drink found for drink_id
         if (drink is None):
             abort(404)
-
+        # deletes drink from db
         drink.delete()
-
+        # returns json response with 200 status
         return jsonify(
             {
                 "success": True,
                 "delete": drink_id
             }
-        )
-    except BaseException:
-        abort(422)
+        ), 200
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            abort(e.code)
+        else:
+            print(sys.exc_info())
+            # Returns error 422 unprocessable
+            abort(422)
 
 
 # Error Handling
