@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 from flask import Flask, request, jsonify, abort
 from sqlalchemy import exc
 import json
@@ -188,7 +189,7 @@ def update_drink(jwt, drink_id):
         # update details for drink
         if drink_title:
             drink.title = drink_title
-        if drink_recipe:    
+        if drink_recipe:
             drink.recipe = drink_recipe
         drink.update()
         # returns json response with 200 status

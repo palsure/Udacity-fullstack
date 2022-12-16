@@ -1,4 +1,5 @@
-import json, sys
+import json
+import sys
 from flask import request, _request_ctx_stack
 from functools import wraps
 from jose import jwt
@@ -184,12 +185,12 @@ def requires_auth(permission=''):
             token = get_token_auth_header()
             try:
                 payload = verify_decode_jwt(token)
-            except:
+            except BaseException:
                 print(sys.exc_info())
                 raise AuthError({
                     'code': 'invalid_token',
                     'description': 'Access denied due to invalid token'
-                },401)
+                }, 401)
             check_permissions(permission, payload)
             return f(payload, *args, **kwargs)
 
